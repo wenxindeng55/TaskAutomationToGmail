@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>任务记录</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>任务记录</h1>
+        <p id="summaryLine">今日任务</p>
+      </div>
+      <div class="topbar-actions">
+        <input id="dateInput" type="date" aria-label="日期">
+        <button id="rolloverButton" type="button">带入未完成</button>
+        <button id="refreshButton" type="button" aria-label="刷新">↻</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="entry-panel" aria-labelledby="newTaskTitle">
+        <h2 id="newTaskTitle">新增任务</h2>
+        <form id="taskForm" class="task-form">
+          <label>
+            标题
+            <input name="title" type="text" maxlength="100" required autocomplete="off">
+          </label>
+          <label>
+            优先级
+            <select name="priority">
+              <option value="中">中</option>
+              <option value="紧急">紧急</option>
+              <option value="高">高</option>
+              <option value="低">低</option>
+            </select>
+          </label>
+          <label>
+            计划时间
+            <input name="plannedTime" type="time">
+          </label>
+          <label>
+            说明
+            <textarea name="description" rows="4" maxlength="800"></textarea>
+          </label>
+          <button class="primary-action" type="submit">+ 新增</button>
+        </form>
+
+        <div class="panel-divider"></div>
+
+        <h2 id="recurringTaskTitle">长期定时</h2>
+        <form id="recurringForm" class="task-form recurring-form">
+          <label>
+            标题
+            <input name="title" type="text" maxlength="100" required autocomplete="off">
+          </label>
+          <div class="two-col">
+            <label>
+              优先级
+              <select name="priority">
+                <option value="中">中</option>
+                <option value="紧急">紧急</option>
+                <option value="高">高</option>
+                <option value="低">低</option>
+              </select>
+            </label>
+            <label>
+              计划时间
+              <input name="plannedTime" type="time">
+            </label>
+          </div>
+          <label>
+            重复规则
+            <select name="recurrenceType" id="recurrenceType">
+              <option value="weekdays">每个工作日</option>
+              <option value="daily">每天</option>
+              <option value="weekly">每周指定日</option>
+              <option value="monthlyDate">每月某日</option>
+              <option value="monthlyLastWeekday">每月最后一个工作日</option>
+            </select>
+          </label>
+          <div class="two-col">
+            <label>
+              周几
+              <select name="dayOfWeek" id="dayOfWeek">
+                <option value="1">周一</option>
+                <option value="2">周二</option>
+                <option value="3">周三</option>
+                <option value="4">周四</option>
+                <option value="5">周五</option>
+                <option value="6">周六</option>
+                <option value="7">周日</option>
+              </select>
+            </label>
+            <label>
+              每月几号
+              <input name="dayOfMonth" id="dayOfMonth" type="number" min="1" max="31" value="1">
+            </label>
+          </div>
+          <div class="two-col">
+            <label>
+              开始日期
+              <input name="startDate" id="recurringStartDate" type="date">
+            </label>
+            <label>
+              结束日期
+              <input name="endDate" type="date">
+            </label>
+          </div>
+          <label>
+            说明
+            <textarea name="description" rows="3" maxlength="800"></textarea>
+          </label>
+          <button class="primary-action" type="submit">+ 新增定时</button>
+        </form>
+        <div id="recurringList" class="recurring-list"></div>
+      </section>
+
+      <section class="task-panel" aria-labelledby="taskListTitle">
+        <div class="section-heading">
+          <h2 id="taskListTitle">今日列表</h2>
+          <span id="activeCount" class="count-pill">0</span>
+        </div>
+        <div id="taskList" class="task-list"></div>
+
+        <div class="section-heading completed-heading">
+          <h2>完成区</h2>
+          <span id="doneCount" class="count-pill">0</span>
+        </div>
+        <div id="doneList" class="task-list compact"></div>
+      </section>
+
+      <section class="worklog-panel" aria-labelledby="worklogTitle">
+        <div class="section-heading">
+          <h2 id="worklogTitle">日报草稿</h2>
+          <button id="copyDraftButton" type="button">复制草稿</button>
+        </div>
+        <pre id="worklogDraft" class="worklog-draft"></pre>
+        <label class="notes-block">
+          补充备注
+          <textarea id="worklogNotes" rows="7" maxlength="2000"></textarea>
+        </label>
+        <button id="saveWorklogButton" class="primary-action" type="button">保存记录</button>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app2.js"></script>
+  </body>
+</html>

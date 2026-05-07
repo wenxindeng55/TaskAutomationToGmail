@@ -1,0 +1,16 @@
+{
+  "name": "task-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local task log dashboard with weekday Gmail summary support.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "summary": "node scripts/gmail-summary.js",
+    "ai-updates": "node scripts/ai-updates-email.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

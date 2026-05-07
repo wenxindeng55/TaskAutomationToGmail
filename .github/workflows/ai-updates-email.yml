@@ -1,0 +1,32 @@
+name: Daily AI updates email
+
+on:
+  schedule:
+    # 14:30 Asia/Shanghai is 06:30 UTC. Temporary test schedule.
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  send-ai-updates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Send AI updates email
+        env:
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.GMAIL_SMTP_USER }}
+          SMTP_PASS: ${{ secrets.GMAIL_SMTP_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.AI_UPDATES_RECIPIENT || 'deng1543659807@gmail.com' }}
+          EMAIL_FROM: ${{ secrets.GMAIL_SMTP_USER }}
+        run: node scripts/ai-updates-email.js
