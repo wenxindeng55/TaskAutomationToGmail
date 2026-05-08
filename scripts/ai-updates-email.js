@@ -1,5 +1,3 @@
-const tls = require("node:tls");
-
 const SOURCES = [
   {
     id: "chatgpt",
@@ -324,76 +322,69 @@ function encodeHeader(value) {
   return `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
-function smtpCommand(socket, command, expected) {
-  return new Promise((resolve, reject) => {
-    let buffer = "";
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error(`SMTP command timed out: ${command || "connect"}`));
-    }, 15000);
-
-    const onError = (error) => {
-      cleanup();
-      reject(error);
-    };
-
-    const cleanup = () => {
-      clearTimeout(timer);
-      socket.off("data", onData);
-      socket.off("error", onError);
-    };
-
-    const onData = (chunk) => {
-      buffer += chunk.toString("utf8");
-      const lines = buffer.split(/\r?\n/).filter(Boolean);
-      const lastLine = lines[lines.length - 1] || "";
-      if (!/^\d{3} /.test(lastLine)) return;
-
-      cleanup();
-      const code = Number(lastLine.slice(0, 3));
-      if (expected.includes(code)) {
-        resolve(buffer);
-      } else {
-        reject(new Error(`SMTP command failed (${command || "connect"}): ${buffer}`));
-      }
-    };
-
-    socket.on("data", onData);
-    socket.on("error", onError);
-    if (command) socket.write(`${command}\r\n`);
-  });
+function base64UrlEncode(value) {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
-async function sendMail({ host, port, user, pass, from, to, subject, body }) {
-  const socket = tls.connect({ host, port: Number(port), servername: host });
-  socket.setTimeout(15000, () => {
-    socket.destroy(new Error(`SMTP socket timed out connecting to ${host}:${port}`));
+async function getGmailAccessToken({ clientId, clientSecret, refreshToken }) {
+  const body = new URLSearchParams({
+    client_id: clientId,
+    refresh_token: refreshToken,
+    grant_type: "refresh_token"
   });
 
-  await smtpCommand(socket, null, [220]);
-  await smtpCommand(socket, "EHLO github-actions", [250]);
-  await smtpCommand(socket, "AUTH LOGIN", [334]);
-  await smtpCommand(socket, Buffer.from(user, "utf8").toString("base64"), [334]);
-  await smtpCommand(socket, Buffer.from(pass, "utf8").toString("base64"), [235]);
-  await smtpCommand(socket, `MAIL FROM:<${from}>`, [250]);
-  await smtpCommand(socket, `RCPT TO:<${to}>`, [250, 251]);
-  await smtpCommand(socket, "DATA", [354]);
+  if (clientSecret) {
+    body.set("client_secret", clientSecret);
+  }
 
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Failed to refresh Gmail access token: ${JSON.stringify(payload)}`);
+  }
+
+  if (!payload.access_token) {
+    throw new Error("Google OAuth token response did not include access_token");
+  }
+
+  return payload.access_token;
+}
+
+async function sendMailWithGmailApi({ accessToken, from, to, subject, body }) {
   const message = [
-    `From: ${from}`,
+    from ? `From: ${from}` : null,
     `To: ${to}`,
     `Subject: ${encodeHeader(subject)}`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=UTF-8",
     "Content-Transfer-Encoding: 8bit",
-    "",
-    body.replace(/\r?\n/g, "\r\n"),
-    "."
-  ].join("\r\n");
+    body.replace(/\r?\n/g, "\r\n")
+  ].filter(Boolean).join("\r\n");
 
-  await smtpCommand(socket, message, [250]);
-  await smtpCommand(socket, "QUIT", [221]);
-  socket.end();
+  const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ raw: base64UrlEncode(message) })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Failed to send Gmail API message: ${JSON.stringify(payload)}`);
+  }
+
+  return payload;
 }
 
 async function main() {
@@ -407,12 +398,15 @@ async function main() {
     return;
   }
 
-  await sendMail({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: process.env.SMTP_PORT || "465",
-    user: requiredEnv("SMTP_USER"),
-    pass: requiredEnv("SMTP_PASS"),
-    from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+  const accessToken = await getGmailAccessToken({
+    clientId: requiredEnv("GOOGLE_CLIENT_ID"),
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    refreshToken: requiredEnv("GOOGLE_REFRESH_TOKEN")
+  });
+
+  await sendMailWithGmailApi({
+    accessToken,
+    from: process.env.EMAIL_FROM || "",
     to: process.env.EMAIL_TO || "deng1543659807@gmail.com",
     subject: email.subject,
     body: email.body

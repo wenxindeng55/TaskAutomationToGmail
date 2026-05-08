@@ -29,10 +29,9 @@ jobs:
 
       - name: Send AI updates email
         env:
-          SMTP_HOST: smtp.gmail.com
-          SMTP_PORT: "465"
-          SMTP_USER: ${{ secrets.GMAIL_SMTP_USER }}
-          SMTP_PASS: ${{ secrets.GMAIL_SMTP_APP_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
           EMAIL_TO: ${{ secrets.AI_UPDATES_RECIPIENT || 'deng1543659807@gmail.com' }}
-          EMAIL_FROM: ${{ secrets.GMAIL_SMTP_USER }}
+          EMAIL_FROM: ${{ secrets.GOOGLE_SENDER_EMAIL || secrets.GMAIL_SMTP_USER }}
         run: node scripts/ai-updates-email.js
