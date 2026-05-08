@@ -327,13 +327,29 @@ function encodeHeader(value) {
 function smtpCommand(socket, command, expected) {
   return new Promise((resolve, reject) => {
     let buffer = "";
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error(`SMTP command timed out: ${command || "connect"}`));
+    }, 15000);
+
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off("data", onData);
+      socket.off("error", onError);
+    };
+
     const onData = (chunk) => {
       buffer += chunk.toString("utf8");
       const lines = buffer.split(/\r?\n/).filter(Boolean);
       const lastLine = lines[lines.length - 1] || "";
       if (!/^\d{3} /.test(lastLine)) return;
 
-      socket.off("data", onData);
+      cleanup();
       const code = Number(lastLine.slice(0, 3));
       if (expected.includes(code)) {
         resolve(buffer);
@@ -343,12 +359,17 @@ function smtpCommand(socket, command, expected) {
     };
 
     socket.on("data", onData);
+    socket.on("error", onError);
     if (command) socket.write(`${command}\r\n`);
   });
 }
 
 async function sendMail({ host, port, user, pass, from, to, subject, body }) {
   const socket = tls.connect({ host, port: Number(port), servername: host });
+  socket.setTimeout(15000, () => {
+    socket.destroy(new Error(`SMTP socket timed out connecting to ${host}:${port}`));
+  });
+
   await smtpCommand(socket, null, [220]);
   await smtpCommand(socket, "EHLO github-actions", [250]);
   await smtpCommand(socket, "AUTH LOGIN", [334]);
