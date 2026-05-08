@@ -1,15 +1,9 @@
 name: Daily AI updates email
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/ai-updates-email.yml"
-      - "scripts/ai-updates-email.js"
   schedule:
-    # 14:30 Asia/Shanghai is 06:30 UTC. Temporary OAuth test schedule.
-    - cron: "30 6 * * *"
+    # 09:00 Asia/Shanghai is 01:00 UTC.
+    - cron: "0 1 * * *"
   workflow_dispatch:
 
 jobs:
@@ -25,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Send AI updates email
         env:
