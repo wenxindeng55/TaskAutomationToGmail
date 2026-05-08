@@ -8,7 +8,7 @@ on:
       - ".github/workflows/ai-updates-email.yml"
       - "scripts/ai-updates-email.js"
   schedule:
-    # 14:30 Asia/Shanghai is 06:30 UTC. Temporary test schedule.
+    # 14:30 Asia/Shanghai is 06:30 UTC. Temporary OAuth test schedule.
     - cron: "30 6 * * *"
   workflow_dispatch:
 
