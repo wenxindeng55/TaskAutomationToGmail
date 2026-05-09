@@ -1,6 +1,11 @@
 name: Daily AI updates email
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/ai-updates-email.yml"
   schedule:
     # 09:17 Asia/Shanghai is 01:17 UTC.
     - cron: "17 1 * * *"
